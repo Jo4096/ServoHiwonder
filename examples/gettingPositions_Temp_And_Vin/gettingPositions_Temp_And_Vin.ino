@@ -19,7 +19,7 @@ void loop()
     {
       // all the get functions return a bool
       // true sucess
-      // false failled -> prolly the packet send wasnt right or you were refrencing a nullptr
+      // false failled -> prolly the packet sent wasnt right or you were refrencing a nullptr
 
       if (position >= 900)
       {
