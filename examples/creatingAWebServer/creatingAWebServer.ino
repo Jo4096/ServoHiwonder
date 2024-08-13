@@ -19,6 +19,6 @@ void loop()
     web.handleClient(servoCont); // This function handles the client, you should connect to the webserver using your browser
     // Example
     // Arduino: prints ->  .. 123.456.78
-    // then open your browser then search for http://123.456.78
+    // then open your browser and search for http://123.456.78
   }
 }
