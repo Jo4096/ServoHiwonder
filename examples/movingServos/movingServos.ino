@@ -42,6 +42,6 @@ void loop()
   {
     pos = (pos == 1000) ? 0 : 1000;       // basically checking if pos == 1000, if so then switch it to 0 else switch it to 1000
     servoCont.moveWithTime(1, pos, 1000); // the servo 1 moves at a speed of 1000 ms
-    servoCont.waitFor(2000);              // basically a delay of 2000 (1s to waiting for the servo + 1s because why not?)
+    servoCont.waitFor(2000);              // basically a delay of 2000 (1s to wait for the servo + 1s because why not?)
   }
 }
