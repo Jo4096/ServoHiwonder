@@ -81,7 +81,7 @@ bool ServoController::recv(const uint8_t id, const uint8_t cmd)
     uint8_t totalLen = getExpectedLen(cmd);
     if (totalLen == 0)
     {
-        return ERROR_VALUE; // Return error if command length is unknown
+        return false; // Return error if command length is unknown
     }
 
     unsigned long startTime = millis();
