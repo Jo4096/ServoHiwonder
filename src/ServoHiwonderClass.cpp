@@ -149,6 +149,26 @@ void ServoController::setID(const uint8_t oldID, const uint8_t newID)
     send(oldID, SERVO_ID_WRITE, 1, newID);
 }
 
+bool ServoController::getID(uint8_t *recvID)
+{
+    if (!recvID)
+    {
+        return false;
+    }
+
+    send(ALL_SERVOS, SERVO_ID_READ, 0, 0);
+
+    if (recv(ALL_SERVOS, SERVO_ID_READ))
+    {
+        *recvID = pack.recvBuffer[5];
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
 void ServoController::moveWithTime(const uint8_t id, uint16_t position, uint16_t time)
 {
     position = constrain(position, 0, 1000);

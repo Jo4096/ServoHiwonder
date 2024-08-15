@@ -102,6 +102,7 @@ public:
     ServoController(Stream &stream);
     Packet getPacket() const;
     void setID(const uint8_t oldID, const uint8_t newID);
+    bool getID(uint8_t *recvID);
 
     void moveWithTime(const uint8_t id, uint16_t position, uint16_t time);
     void moveWithTime(ServoHiwonder &servo);
