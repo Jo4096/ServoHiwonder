@@ -82,9 +82,29 @@ struct Packet
 
 struct ServoHiwonder
 {
+    ServoHiwonder()
+    {
+        id = 0;
+        position = 0;
+        time = 0;
+        isLoadMode = false;
+        isLedOn = false;
+    }
+
+    ServoHiwonder(const uint8_t id, const uint16_t position, const uint16_t time, const bool isLoadMode, const bool isLedOn)
+    {
+        this->id = id;
+        this->position = position;
+        this->time = time;
+        this->isLoadMode = isLoadMode;
+        this->isLedOn = isLedOn;
+    }
+
     uint8_t id;
     uint16_t position;
     uint16_t time;
+    bool isLoadMode;
+    bool isLedOn;
 };
 
 class ServoController
@@ -146,8 +166,16 @@ public:
     void turnLedOn(const ServoHiwonder &servo);
     void turnLedOff(const ServoHiwonder &servo);
     void turnLed(const ServoHiwonder &servo, const bool on);
-    bool getLed(const ServoHiwonder &servo, bool *isOn);
+    bool getLed(ServoHiwonder &servo);
     void changeLed(const ServoHiwonder &servo);
+
+    void setLoadMode(const uint8_t id);
+    void setLoadMode(const ServoHiwonder &servo);
+    void setUnloadMode(const uint8_t id);
+    void setUnloadMode(const ServoHiwonder &servo);
+
+    bool getLoadOrUnload(const uint8_t id, bool *isLoadMode);
+    bool getLoadOrUnload(ServoHiwonder &servo);
 
     ~ServoController()
     {

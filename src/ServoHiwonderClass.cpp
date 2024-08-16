@@ -493,12 +493,68 @@ void ServoController::turnLed(const ServoHiwonder &servo, const bool on)
     turnLed(servo.id, on);
 }
 
-bool ServoController::getLed(const ServoHiwonder &servo, bool *isOn)
+bool ServoController::getLed(ServoHiwonder &servo)
 {
-    return getLed(servo.id, isOn);
+    return getLed(servo.id, &(servo.isLedOn));
 }
 
 void ServoController::changeLed(const ServoHiwonder &servo)
 {
     changeLed(servo.id);
+}
+
+void ServoController::setLoadMode(const uint8_t id)
+{
+    send(id, SERVO_LOAD_OR_UNLOAD_WRITE, 1, 1);
+}
+
+void ServoController::setLoadMode(const ServoHiwonder &servo)
+{
+    setLoadMode(servo.id);
+}
+
+void ServoController::setUnloadMode(const uint8_t id)
+{
+    send(id, SERVO_LOAD_OR_UNLOAD_WRITE, 1, 0);
+}
+
+void ServoController::setUnloadMode(const ServoHiwonder &servo)
+{
+    setUnloadMode(servo.id);
+}
+
+bool ServoController::getLoadOrUnload(const uint8_t id, bool *isLoadMode)
+{
+
+    if (!isLoadMode)
+    {
+        return false;
+    }
+
+    send(id, SERVO_LOAD_OR_UNLOAD_READ, 0, 0);
+    if (recv(id, SERVO_LOAD_OR_UNLOAD_READ))
+    {
+        switch (pack.recvBuffer[5])
+        {
+        case 1:
+            *isLoadMode = true;
+            break;
+        case 0:
+            *isLoadMode = false;
+            break;
+        default:
+            return false;
+            break;
+        }
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+bool ServoController::getLoadOrUnload(ServoHiwonder &servo)
+{
+    return getLoadOrUnload(servo.id, &(servo.isLoadMode));
 }
