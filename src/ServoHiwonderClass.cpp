@@ -15,7 +15,7 @@ void ServoController::send(const uint8_t id, const uint8_t cmd, const uint8_t nu
     uint8_t len = numberOfParam + 3;
     uint8_t checkSum = id + cmd + len;
 
-    sendPack.pushback(id); // Assuming ID needs to be included in the packet
+    sendPack.pushback(id);
     sendPack.pushback(len);
     sendPack.pushback(cmd);
 
