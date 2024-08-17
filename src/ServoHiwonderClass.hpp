@@ -61,20 +61,20 @@ struct Packet
 
     bool pushback(uint8_t v)
     {
-        if (index >= 32)
+        if (lastIndex >= 32)
         {
             return false; // Indicate that pushback failed due to overflow
         }
 
-        buffer[index++] = v;
+        buffer[lastIndex++] = v;
         return true;
     }
 
     void setPacket(const uint8_t *arr, uint8_t size)
     {
         clear();
-        index = (size > 32) ? 32 : size;
-        for (uint8_t i = 0; i < index; ++i)
+        lastIndex = (size > 32) ? 32 : size;
+        for (uint8_t i = 0; i < lastIndex; ++i)
         {
             buffer[i] = arr[i];
         }
@@ -82,7 +82,7 @@ struct Packet
 
     void clear()
     {
-        index = 0;
+        lastIndex = 0;
         memset(buffer, 0, sizeof(buffer));
     }
 
@@ -95,7 +95,7 @@ struct Packet
         return 0; // Return 0 if indices are out of bounds
     }
 
-    uint8_t index = 0;
+    uint8_t lastIndex = 0;
     uint8_t buffer[32] = {0};
 };
 

@@ -37,7 +37,7 @@ void ServoController::send(const uint8_t id, const uint8_t cmd, const uint8_t nu
     checkSum = ~checkSum;
     sendPack.pushback(checkSum);
 
-    serialX.write(sendPack.buffer, sendPack.index);
+    serialX.write(sendPack.buffer, sendPack.lastIndex);
 }
 
 uint8_t ServoController::getExpectedLen(const uint8_t cmd)
