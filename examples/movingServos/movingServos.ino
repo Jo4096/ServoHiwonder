@@ -37,7 +37,7 @@ void loop()
   or you can also do this...
   */
 
-  uint16_t pos = 0;
+  int16_t pos = 0;
   while (true)
   {
     pos = (pos == 1000) ? 0 : 1000;       // basically checking if pos == 1000, if so then switch it to 0 else switch it to 1000
