@@ -54,30 +54,49 @@ struct Packet
         clear();
     }
 
-    Packet(uint8_t *arr, uint8_t size)
+    Packet(const uint8_t *arr, uint8_t size)
     {
         setPacket(arr, size);
     }
-    uint8_t recvBuffer[32];
 
-    void setPacket(uint8_t *arr, uint8_t size)
+    bool pushback(uint8_t v)
+    {
+        if (index >= 32)
+        {
+            return false; // Indicate that pushback failed due to overflow
+        }
+
+        buffer[index++] = v;
+        return true;
+    }
+
+    void setPacket(const uint8_t *arr, uint8_t size)
     {
         clear();
-        for (uint8_t i = 0; i < ((size > 32) ? 32 : size); ++i)
+        index = (size > 32) ? 32 : size;
+        for (uint8_t i = 0; i < index; ++i)
         {
-            recvBuffer[i] = arr[i];
+            buffer[i] = arr[i];
         }
     }
 
     void clear()
     {
-        memset(recvBuffer, 0, sizeof(recvBuffer) / sizeof(uint8_t));
+        index = 0;
+        memset(buffer, 0, sizeof(buffer));
     }
 
-    uint16_t combine(uint8_t higher, uint8_t lower)
+    uint16_t combine(uint8_t higher, uint8_t lower) const
     {
-        return recvBuffer[higher] * 256 + recvBuffer[lower];
+        if (higher < 32 && lower < 32)
+        {
+            return static_cast<uint16_t>(buffer[higher]) * 256 + static_cast<uint16_t>(buffer[lower]);
+        }
+        return 0; // Return 0 if indices are out of bounds
     }
+
+    uint8_t index = 0;
+    uint8_t buffer[32] = {0};
 };
 
 struct ServoHiwonder
@@ -111,7 +130,10 @@ class ServoController
 {
 private:
     Stream &serialX;
-    Packet pack;
+
+    Packet recvPack;
+    Packet sendPack;
+
     void send(const uint8_t id, const uint8_t cmd, const uint8_t numberOfParam, const uint8_t pram1...);
     uint8_t getExpectedLen(const uint8_t cmd);
     // void clearBuffer();

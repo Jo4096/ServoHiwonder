@@ -7,9 +7,10 @@ ServoController::ServoController(Stream &serialX) : serialX(serialX)
 void ServoController::send(const uint8_t id, const uint8_t cmd, const uint8_t numberOfParam, uint8_t pram1...)
 {
     serialX.flush();
+    sendPack.clear();
 
-    serialX.write(SIGNATURE); // 0x55
-    serialX.write(SIGNATURE); // 0x55
+    sendPack.pushback(SIGNATURE);
+    sendPack.pushback(SIGNATURE);
 
     uint8_t len = numberOfParam + 3;
     uint8_t checkSum = id + cmd + len;
@@ -18,19 +19,21 @@ void ServoController::send(const uint8_t id, const uint8_t cmd, const uint8_t nu
     {
         va_list vl;
         va_start(vl, pram1);
-        serialX.write(pram1);
+        sendPack.pushback(pram1);
         checkSum += pram1;
         for (uint8_t i = 1; i < numberOfParam; i++)
         {
             uint8_t val = static_cast<uint8_t>(va_arg(vl, int));
             checkSum += val;
-            serialX.write(val);
+            sendPack.pushback(val);
         }
         va_end(vl);
     }
 
     checkSum = ~checkSum;
-    serialX.write(checkSum);
+    sendPack.pushback(checkSum);
+
+    serialX.write(sendPack.buffer, sendPack.index);
 }
 
 uint8_t ServoController::getExpectedLen(const uint8_t cmd)
@@ -134,14 +137,14 @@ bool ServoController::recv(const uint8_t id, const uint8_t cmd)
         return false; // Return error if checksum does not match
     }
 
-    pack.setPacket(recvBuffer, totalLen);
+    recvPack.setPacket(recvBuffer, totalLen);
 
     return true; // Success
 }
 
 Packet ServoController::getPacket() const
 {
-    return pack;
+    return recvPack;
 }
 
 void ServoController::setID(const uint8_t oldID, const uint8_t newID)
@@ -160,7 +163,7 @@ bool ServoController::getID(uint8_t *recvID)
 
     if (recv(ALL_SERVOS, SERVO_ID_READ))
     {
-        *recvID = pack.recvBuffer[5];
+        *recvID = recvPack.buffer[5];
         return true;
     }
     else
@@ -202,13 +205,13 @@ bool ServoController::getPosWithTime(const uint8_t id, uint16_t *pos, uint16_t *
         //                      low(Pos)high(Pos)low(Time)high(Time)
         if (pos != nullptr)
         {
-            *pos = pack.combine(6, 5);
+            *pos = recvPack.combine(6, 5);
             *pos = constrain(*pos, 0, 1000);
         }
 
         if (time != nullptr)
         {
-            *time = pack.combine(8, 7);
+            *time = recvPack.combine(8, 7);
         }
 
         return true;
@@ -263,7 +266,7 @@ bool ServoController::getPosFromWFS(const uint8_t id, uint16_t *pos)
     send(id, SERVO_MOVE_TIME_WAIT_READ, 0, 0);
     if (recv(id, SERVO_MOVE_TIME_WAIT_READ))
     {
-        *pos = pack.combine(6, 5);
+        *pos = recvPack.combine(6, 5);
         *pos = constrain(*pos, 0, 1000);
         return true;
     }
@@ -320,7 +323,7 @@ bool ServoController::getOffset(const uint8_t id, int8_t *offset)
     send(id, SERVO_ANGLE_OFFSET_READ, 0, 0);
     if (recv(id, SERVO_ANGLE_OFFSET_READ))
     {
-        *offset = static_cast<int8_t>(pack.recvBuffer[5]);
+        *offset = static_cast<int8_t>(recvPack.buffer[5]);
         return true;
     }
     else
@@ -374,7 +377,7 @@ bool ServoController::getPos(const uint8_t id, int16_t *pos)
     send(id, SERVO_POS_READ, 0, 0);
     if (recv(id, SERVO_POS_READ))
     {
-        *pos = pack.combine(6, 5);
+        *pos = recvPack.combine(6, 5);
         *pos = constrain(*pos, 0, 1000);
         return true;
     }
@@ -394,7 +397,7 @@ bool ServoController::getTemp(const uint8_t id, uint8_t *temp)
     send(id, SERVO_TEMP_READ, 0, 0);
     if (recv(id, SERVO_TEMP_READ))
     {
-        *temp = pack.recvBuffer[5];
+        *temp = recvPack.buffer[5];
         return true;
     }
     else
@@ -413,7 +416,7 @@ bool ServoController::getVin(const uint8_t id, uint16_t *vin)
     send(id, SERVO_TEMP_READ, 0, 0);
     if (recv(id, SERVO_TEMP_READ))
     {
-        *vin = pack.combine(6, 5);
+        *vin = recvPack.combine(6, 5);
         return true;
     }
     else
@@ -446,7 +449,7 @@ bool ServoController::getLed(const uint8_t id, bool *isOn)
     send(id, SERVO_LED_CTRL_READ, 0, 0);
     if (recv(id, SERVO_LED_CTRL_READ))
     {
-        if (pack.recvBuffer[5] == static_cast<uint8_t>(1))
+        if (recvPack.buffer[5] == static_cast<uint8_t>(1))
         {
             *isOn = false;
         }
@@ -534,7 +537,7 @@ bool ServoController::getLoadOrUnload(const uint8_t id, bool *isLoadMode)
     send(id, SERVO_LOAD_OR_UNLOAD_READ, 0, 0);
     if (recv(id, SERVO_LOAD_OR_UNLOAD_READ))
     {
-        switch (pack.recvBuffer[5])
+        switch (recvPack.buffer[5])
         {
         case 1:
             *isLoadMode = true;
