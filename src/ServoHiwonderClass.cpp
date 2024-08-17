@@ -105,7 +105,7 @@ bool ServoController::recv(const uint8_t id, const uint8_t cmd)
     Serial.readBytes(recvBuffer, totalLen);
 
     // Validate header
-    if (recvBuffer[0] != 0x55 || recvBuffer[1] != 0x55)
+    if (recvBuffer[0] != SIGNATURE || recvBuffer[1] != SIGNATURE)
     {
         return false; // Return error if header is incorrect
     }
