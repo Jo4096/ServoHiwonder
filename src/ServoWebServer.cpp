@@ -161,7 +161,7 @@ void webHandler::ProcessButton_RightButton()
 
 void webHandler::handleClient(ServoController &servoCont)
 {
-    client = server.available();
+    client = ACCEPT_CLIENT;
 
     if (client)
     {

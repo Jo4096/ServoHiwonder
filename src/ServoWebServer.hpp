@@ -1,11 +1,16 @@
 #ifndef SERVO_HIWONDER_WEBSERVER
 #define SERVO_HIWONDER_WEBSERVER
-
 #include "webserverSource.hpp"
 #include "ServoHiwonderClass.hpp"
 #include <WiFi.h>
 #include <WebServer.h>
 #include <stdarg.h>
+
+#if defined(ARDUINO_ARCH_RP2040)
+#define ACCEPT_CLIENT server.accept()
+#else
+#define ACCEPT_CLIENT server.available()
+#endif
 
 #define XML_SIZE 1024
 #define BUFFER_SIZE 64
