@@ -176,7 +176,7 @@ bool ServoController::getID(uint8_t *recvID)
     }
 }
 
-void ServoController::moveWithTime(const uint8_t id, uint16_t position, uint16_t time)
+void ServoController::moveWithTime(const uint8_t id, int16_t position, uint16_t time)
 {
     position = constrain(position, 0, 1000);
     time = constrain(time, 0, 30000);
@@ -192,12 +192,12 @@ void ServoController::moveWithTime(ServoHiwonder &servo)
     moveWithTime(servo.id, servo.position, servo.time);
 }
 
-void ServoController::moveAll(uint16_t position, uint16_t time)
+void ServoController::moveAll(int16_t position, uint16_t time)
 {
     moveWithTime(ALL_SERVOS, position, time);
 }
 
-bool ServoController::getPosWithTime(const uint8_t id, uint16_t *pos, uint16_t *time)
+bool ServoController::getPosWithTime(const uint8_t id, int16_t *pos, uint16_t *time)
 {
 
     send(id, SERVO_POS_READ, 0, 0);
@@ -238,7 +238,7 @@ void ServoController::waitFor(const uint16_t time)
         ;
 }
 
-void ServoController::storeMWT_WaitForSignal(const uint8_t id, uint16_t position, uint16_t time)
+void ServoController::storeMWT_WaitForSignal(const uint8_t id, int16_t position, uint16_t time)
 {
     position = constrain(position, 0, 1000);
     time = constrain(time, 0, 30000);
@@ -260,7 +260,7 @@ void ServoController::sendSignal(const uint8_t id)
     send(id, SERVO_MOVE_START, 0, 0);
 }
 
-bool ServoController::getPosFromWFS(const uint8_t id, uint16_t *pos)
+bool ServoController::getPosFromWFS(const uint8_t id, int16_t *pos)
 {
     if (!pos)
     {
@@ -565,3 +565,78 @@ bool ServoController::getLoadOrUnload(ServoHiwonder &servo)
 {
     return getLoadOrUnload(servo.id, &(servo.isLoadMode));
 }
+
+void ServoController::moveRelative(const uint8_t id, int16_t relative, uint16_t time)
+{
+    int16_t current = 0;
+    if (!getPos(id, &current))
+    {
+        return;
+    }
+
+    int16_t target = relative + target;
+    moveWithTime(id, target, time);
+}
+#ifdef MOVE_FUNCTIONS
+void ServoController::moveAnim(const uint8_t id, int16_t pos, uint16_t totalTime, anim animType)
+{
+    pos = constrain(pos, 0, 1000);
+    int16_t currentPos = 0;
+    uint16_t animTime = 1000;
+
+    if (!getPos(id, &currentPos))
+    {
+        return;
+    }
+    int16_t dif = pos - currentPos;
+
+    unsigned long startTime = millis();
+    unsigned long currentTime = startTime;
+    unsigned long endTime = startTime + totalTime;
+    while (currentTime < endTime)
+    {
+        float elapsedTime = (currentTime - startTime) / static_cast<float>(totalTime);
+        float easeFactor;
+
+        // Switch case to choose the animation type
+        switch (animType)
+        {
+        case anim::easeInSine:
+            easeFactor = easeInSine(elapsedTime);
+            break;
+        case anim::easeOutSine:
+            easeFactor = easeOutSine(elapsedTime);
+            break;
+        case anim::easeInOutSine:
+            easeFactor = easeInOutSine(elapsedTime);
+            break;
+        case anim::easeInCubic:
+            easeFactor = easeInCubic(elapsedTime);
+            break;
+        case anim::easeOutCubic:
+            easeFactor = easeOutCubic(elapsedTime);
+            break;
+        case anim::easeInOutCubic:
+            easeFactor = easeInOutCubic(elapsedTime);
+            break;
+        case anim::gaussian:
+            easeFactor = gaussian(elapsedTime);
+            break;
+        default:
+            easeFactor = elapsedTime; // Default to linear if unknown anim type
+            break;
+        }
+        int16_t newPos = currentPos + static_cast<int16_t>(dif * easeFactor);
+        newPos = constrain(newPos, 0, 1000);
+        uint16_t remainingTime = endTime - currentTime;
+        moveWithTime(id, newPos, remainingTime);
+        currentTime = millis();
+        waitFor(10);
+    }
+    moveWithTime(id, pos, 100);
+}
+void ServoController::moveAnim(ServoHiwonder &servo, anim animType)
+{
+    moveAnim(servo.id, servo.position, servo.time, animType);
+}
+#endif

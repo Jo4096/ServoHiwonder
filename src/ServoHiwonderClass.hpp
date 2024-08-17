@@ -99,6 +99,60 @@ struct Packet
     uint8_t buffer[32] = {0};
 };
 
+#ifdef MOVE_FUNCTIONS
+
+enum class anim : uint8_t
+{
+    // sine
+    easeInSine,
+    easeOutSine,
+    easeInOutSine,
+
+    // Cubic
+    easeInCubic,
+    easeOutCubic,
+    easeInOutCubic,
+
+    // Gaussian
+    gaussian
+};
+
+float easeInSine(float x)
+{
+    return 1 - cos((x * M_PI) / 2);
+}
+
+float easeOutSine(float x)
+{
+    return sin((x * M_PI) / 2);
+}
+
+float easeInOutSine(float x)
+{
+    return -(cos(M_PI * x) - 1) / 2;
+}
+
+float easeInCubic(float x)
+{
+    return x * x * x;
+}
+
+float easeOutCubic(float x)
+{
+    return 1 - pow(1 - x, 3);
+}
+
+float easeInOutCubic(float x)
+{
+    return (x < 0.5) ? (4 * x * x * x) : (1 - pow(-2 * x + 2, 3) / 2);
+}
+
+float gaussian(float x, float b = 0.5, float c = 0.1)
+{
+    return exp(-0.5 * pow((x - b) / c, 2.0));
+}
+#endif
+
 struct ServoHiwonder
 {
     ServoHiwonder()
@@ -110,7 +164,7 @@ struct ServoHiwonder
         isLedOn = false;
     }
 
-    ServoHiwonder(const uint8_t id, const uint16_t position, const uint16_t time, const bool isLoadMode, const bool isLedOn)
+    ServoHiwonder(const uint8_t id, const int16_t position, const uint16_t time, const bool isLoadMode, const bool isLedOn)
     {
         this->id = id;
         this->position = position;
@@ -120,7 +174,7 @@ struct ServoHiwonder
     }
 
     uint8_t id;
-    uint16_t position;
+    int16_t position;
     uint16_t time;
     bool isLoadMode;
     bool isLedOn;
@@ -146,20 +200,20 @@ public:
     void setID(const uint8_t oldID, const uint8_t newID);
     bool getID(uint8_t *recvID);
 
-    void moveWithTime(const uint8_t id, uint16_t position, uint16_t time);
+    void moveWithTime(const uint8_t id, int16_t position, uint16_t time);
     void moveWithTime(ServoHiwonder &servo);
-    void moveAll(uint16_t position, uint16_t time);
+    void moveAll(int16_t position, uint16_t time);
 
-    bool getPosWithTime(const uint8_t id, uint16_t *pos, uint16_t *time);
+    bool getPosWithTime(const uint8_t id, int16_t *pos, uint16_t *time);
     bool getPosWithTime(ServoHiwonder &servo);
 
     void waitFor(const uint16_t time);
 
-    void storeMWT_WaitForSignal(const uint8_t id, uint16_t position, uint16_t time);
+    void storeMWT_WaitForSignal(const uint8_t id, int16_t position, uint16_t time);
     void storeMWT_WaitForSignal(ServoHiwonder &servo);
     void sendSignal(const uint8_t id);
 
-    bool getPosFromWFS(const uint8_t id, uint16_t *pos);
+    bool getPosFromWFS(const uint8_t id, int16_t *pos);
     bool getPosFromWFS(ServoHiwonder &servo);
 
     void stopMoving(const uint8_t id);
@@ -198,6 +252,15 @@ public:
 
     bool getLoadOrUnload(const uint8_t id, bool *isLoadMode);
     bool getLoadOrUnload(ServoHiwonder &servo);
+
+    void moveRelative(const uint8_t id, int16_t relative, uint16_t time);
+
+#ifdef MOVE_FUNCTIONS
+    // note that this function only ends if it reaches the desired target pos, unlike the moveWithTime which is "async"
+    void moveAnim(const uint8_t id, int16_t pos, uint16_t totalTime, anim animType);
+    // note that this function only ends if it reaches the desired target pos, unlike the moveWithTime which is "async"
+    void moveAnim(ServoHiwonder &servo, anim animType);
+#endif
 
     ~ServoController()
     {
