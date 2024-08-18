@@ -100,8 +100,8 @@ bool ServoController::recv(const uint8_t id, const uint8_t cmd)
         }
     }
 
-    // Read the packet into the buffer
-    uint8_t recvBuffer[totalLen];
+    // Read the packet into the buffer    1     2   3    |      (numberofParam + 3)           |
+    uint8_t recvBuffer[totalLen + 3]; // 0x55 0x55  id   len   cmd param1 param2 ...  checksum       yeah I forgot that len only counts from len forward it needs a + 3 for the SIGNATURE SIGNATURE ID
     Serial.readBytes(recvBuffer, totalLen);
 
     // Validate header
