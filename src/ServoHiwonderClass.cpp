@@ -88,7 +88,7 @@ bool ServoController::recv(const uint8_t id, const uint8_t cmd)
     // example of expected SERVO_MOVE_TIME_WRITE
     //  0x55 0x55 ID 7 SERVO_MOVE_TIME_WRITE   low   high low high checksum
     //   1     2   3  4              5          6     7    8  9     10
-    //  7 + 3 => 10
+    //  7 + 3 => 10 = totalLen
     uint8_t len = getExpectedLen(cmd);
     uint8_t totalLen = len + 3;
     if (len == 0)
@@ -240,7 +240,9 @@ void ServoController::waitFor(const uint16_t time)
 {
     unsigned long prev = millis();
     while (millis() - prev <= time)
-        ;
+    {
+        delay(1);
+    }
 }
 
 void ServoController::storeMWT_WaitForSignal(const uint8_t id, int16_t position, uint16_t time)
