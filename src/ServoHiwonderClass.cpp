@@ -92,7 +92,7 @@ bool ServoController::recv(const uint8_t id, const uint8_t cmd)
     }
 
     unsigned long startTime = millis();
-    while (Serial.available() < totalLen)
+    while (Serial.available() < totalLen + 3)
     {
         if (millis() - startTime > TIMEOUT)
         {
@@ -102,7 +102,7 @@ bool ServoController::recv(const uint8_t id, const uint8_t cmd)
 
     // Read the packet into the buffer    1     2   3    |      (numberofParam + 3)           |
     uint8_t recvBuffer[totalLen + 3]; // 0x55 0x55  id   len   cmd param1 param2 ...  checksum       yeah I forgot that len only counts from len forward it needs a + 3 for the SIGNATURE SIGNATURE ID
-    Serial.readBytes(recvBuffer, totalLen);
+    Serial.readBytes(recvBuffer, totalLen + 3);
 
     // Validate header
     if (recvBuffer[0] != SIGNATURE || recvBuffer[1] != SIGNATURE)
@@ -141,7 +141,7 @@ bool ServoController::recv(const uint8_t id, const uint8_t cmd)
         return false; // Return error if checksum does not match
     }
 
-    recvPack.setPacket(recvBuffer, totalLen);
+    recvPack.setPacket(recvBuffer, totalLen + 3);
 
     return true; // Success
 }
