@@ -85,14 +85,19 @@ uint8_t ServoController::getExpectedLen(const uint8_t cmd)
 
 bool ServoController::recv(const uint8_t id, const uint8_t cmd)
 {
-    uint8_t totalLen = getExpectedLen(cmd);
-    if (totalLen == 0)
+    // example of expected SERVO_MOVE_TIME_WRITE
+    //  0x55 0x55 ID 7 SERVO_MOVE_TIME_WRITE   low   high low high checksum
+    //   1     2   3  4              5          6     7    8  9     10
+    //  7 + 3 => 10
+    uint8_t len = getExpectedLen(cmd);
+    uint8_t totalLen = len + 3;
+    if (len == 0)
     {
         return false; // Return error if command length is unknown
     }
 
     unsigned long startTime = millis();
-    while (Serial.available() < totalLen + 3)
+    while (Serial.available() < totalLen)
     {
         if (millis() - startTime > TIMEOUT)
         {
@@ -101,8 +106,8 @@ bool ServoController::recv(const uint8_t id, const uint8_t cmd)
     }
 
     // Read the packet into the buffer    1     2   3    |      (numberofParam + 3)           |
-    uint8_t recvBuffer[totalLen + 3]; // 0x55 0x55  id   len   cmd param1 param2 ...  checksum       yeah I forgot that len only counts from len forward it needs a + 3 for the SIGNATURE SIGNATURE ID
-    Serial.readBytes(recvBuffer, totalLen + 3);
+    uint8_t recvBuffer[totalLen]; // 0x55 0x55  id   len   cmd param1 param2 ...  checksum       yeah I forgot that len only counts from len forward it needs a + 3 for the SIGNATURE SIGNATURE ID
+    Serial.readBytes(recvBuffer, totalLen);
 
     // Validate header
     if (recvBuffer[0] != SIGNATURE || recvBuffer[1] != SIGNATURE)
@@ -117,7 +122,7 @@ bool ServoController::recv(const uint8_t id, const uint8_t cmd)
     }
 
     // Validate Length
-    if (recvBuffer[3] != totalLen)
+    if (recvBuffer[3] != len)
     {                 // Length should equal the total length of the packet
         return false; // Return error if length does not match
     }
@@ -130,18 +135,18 @@ bool ServoController::recv(const uint8_t id, const uint8_t cmd)
 
     // Calculate and validate checksum
     uint8_t checksum = 0;
-    for (int i = 2; i < totalLen - 1; ++i)
+    for (int i = 2; i < len - 1; ++i)
     { // Start from ID to last parameter
         checksum += recvBuffer[i];
     }
     checksum = ~checksum;
 
-    if (recvBuffer[totalLen - 1] != checksum)
+    if (recvBuffer[len - 1] != checksum)
     {
         return false; // Return error if checksum does not match
     }
 
-    recvPack.setPacket(recvBuffer, totalLen + 3);
+    recvPack.setPacket(recvBuffer, totalLen);
 
     return true; // Success
 }
