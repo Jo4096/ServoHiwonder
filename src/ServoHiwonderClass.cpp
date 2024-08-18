@@ -135,13 +135,13 @@ bool ServoController::recv(const uint8_t id, const uint8_t cmd)
 
     // Calculate and validate checksum
     uint8_t checksum = 0;
-    for (int i = 2; i < len - 1; ++i)
+    for (int i = 2; i < totalLen - 1; ++i)
     { // Start from ID to last parameter
         checksum += recvBuffer[i];
     }
     checksum = ~checksum;
 
-    if (recvBuffer[len - 1] != checksum)
+    if (recvBuffer[totalLen - 1] != checksum)
     {
         return false; // Return error if checksum does not match
     }
