@@ -48,7 +48,7 @@ void loop()
     {
         servoCont.sequence(waving, 3, 1000, 500);
         servoCont.waitFor(2000);
-        servoCont.domino(dom.ids, dom.idsSize, dom.positions[0], dom.positionSizesPerLine[0], 1000, 500, anim::easeInCubic); //easeInCubic to to get an acceleration time of animation
+        servoCont.domino(dom.ids, dom.idsSize, dom.positions[0], dom.positionSizesPerLine[0], 1000, 500, anim::easeInCubic); //easeInCubic to to get an acceleration type of animation
         servoCont.waitFor(2000);
     }
 }
