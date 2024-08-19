@@ -37,7 +37,7 @@ void ServoController::send(const uint8_t id, const uint8_t cmd, const uint8_t nu
     checkSum = ~checkSum;
     sendPack.pushback(checkSum);
 
-    serialX.write(sendPack.buffer, sendPack.lastIndex);
+    serialX.write(sendPack.buffer, sendPack.bufferSize);
 }
 
 uint8_t ServoController::getExpectedLen(const uint8_t cmd)
@@ -584,7 +584,54 @@ void ServoController::moveRelative(const uint8_t id, int16_t relative, uint16_t 
     int16_t target = relative + target;
     moveWithTime(id, target, time);
 }
-#ifdef MOVE_FUNCTIONS
+
+void ServoController::moveRelative(ServoHiwonder &servo, int16_t relative)
+{
+    int16_t current = 0;
+    if (!getPos(servo.id, &current))
+    {
+        return;
+    }
+
+    servo.position = current + relative;
+    moveWithTime(servo);
+}
+
+float easeInSine(float x)
+{
+    return 1 - cos((x * M_PI) / 2);
+}
+
+float easeOutSine(float x)
+{
+    return sin((x * M_PI) / 2);
+}
+
+float easeInOutSine(float x)
+{
+    return -(cos(M_PI * x) - 1) / 2;
+}
+
+float easeInCubic(float x)
+{
+    return x * x * x;
+}
+
+float easeOutCubic(float x)
+{
+    return 1 - pow(1 - x, 3);
+}
+
+float easeInOutCubic(float x)
+{
+    return (x < 0.5) ? (4 * x * x * x) : (1 - pow(-2 * x + 2, 3) / 2);
+}
+
+float gaussian(float x, float b = 0.5, float c = 0.1)
+{
+    return exp(-0.5 * pow((x - b) / c, 2.0));
+}
+
 void ServoController::moveAnim(const uint8_t id, int16_t pos, uint16_t totalTime, anim animType)
 {
     pos = constrain(pos, 0, 1000);
@@ -642,8 +689,84 @@ void ServoController::moveAnim(const uint8_t id, int16_t pos, uint16_t totalTime
     }
     moveWithTime(id, pos, 100);
 }
+
 void ServoController::moveAnim(ServoHiwonder &servo, anim animType)
 {
     moveAnim(servo.id, servo.position, servo.time, animType);
 }
-#endif
+
+void ServoController::moveMin(const uint8_t id, uint16_t totalTime, anim animType)
+{
+    if (animType == anim::none)
+    {
+        moveWithTime(id, 0, totalTime);
+        return;
+    }
+    moveAnim(id, 0, totalTime, animType);
+}
+
+void ServoController::moveMin(ServoHiwonder &servo, anim animType)
+{
+    servo.position = 0;
+    moveMin(servo.id, servo.time, animType);
+}
+
+void ServoController::moveMax(const uint8_t id, uint16_t totalTime, anim animType)
+{
+    if (animType == anim::none)
+    {
+        moveWithTime(id, 1000, totalTime);
+        return;
+    }
+    moveAnim(id, 1000, totalTime, animType);
+}
+
+void ServoController::moveMax(ServoHiwonder &servo, anim animType)
+{
+    servo.position = 1000;
+    moveMin(servo.id, servo.time, animType);
+}
+
+void ServoController::sequence(uint8_t *ids, uint8_t numberOfIds, int16_t **positions, uint8_t numberOfPositions, uint8_t numberOfCycles, uint16_t timePerMovement, uint16_t pause)
+{
+    for (uint8_t cycle = 0; cycle < numberOfCycles; ++cycle)
+    {
+        for (uint8_t pos = 0; pos < numberOfPositions; ++pos)
+        {
+            for (uint8_t id = 0; id < numberOfIds; ++id)
+            {
+                moveWithTime(ids[id], positions[id][pos], timePerMovement);
+                waitFor(10); // so that i dont send a blob of data to the servos with the all the spam
+            }
+            waitFor(pause);
+        }
+    }
+}
+
+void ServoController::sequence(action &act, uint8_t numberOfCycles, uint16_t timePerMovement, uint16_t pause)
+{
+    for (uint8_t cycle = 0; cycle < numberOfCycles; ++cycle)
+    {
+        for (uint8_t pos = 0; pos < act.getMatrixSize(); pos++)
+        {
+            for (uint8_t id = 0; id < act.idsSize; id++)
+            {
+                moveWithTime(act.ids[id], act.positions[id][pos], timePerMovement);
+                waitFor(10);
+            }
+            waitFor(pause);
+        }
+    }
+}
+
+void ServoController::domino(uint8_t *ids, uint8_t numberOfIds, int16_t *positions, uint8_t numberOfPositions, uint16_t timePerMovement, uint16_t pause, anim animType)
+{
+    for (uint8_t pos = 0; pos < numberOfPositions; pos++)
+    {
+        for (uint8_t id = 0; id < numberOfIds; id++)
+        {
+            moveAnim(ids[id], positions[pos], timePerMovement, animType);
+        }
+        waitFor(pause);
+    }
+}

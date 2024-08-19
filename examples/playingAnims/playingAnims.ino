@@ -1,5 +1,4 @@
 #include <Arduino.h>
-#define MOVE_FUNCTIONS //enable the usage of the moveAnim func
 #include <ServoHiwonder.hpp>
 
 void setup()

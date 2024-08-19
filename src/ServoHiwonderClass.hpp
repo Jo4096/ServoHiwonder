@@ -61,20 +61,20 @@ struct Packet
 
     bool pushback(uint8_t v)
     {
-        if (lastIndex >= 32)
+        if (bufferSize >= 32)
         {
             return false; // Indicate that pushback failed due to overflow
         }
 
-        buffer[lastIndex++] = v;
+        buffer[bufferSize++] = v;
         return true;
     }
 
     void setPacket(const uint8_t *arr, uint8_t size)
     {
         clear();
-        lastIndex = (size > 32) ? 32 : size;
-        for (uint8_t i = 0; i < lastIndex; ++i)
+        bufferSize = (size > 32) ? 32 : size;
+        for (uint8_t i = 0; i < bufferSize; ++i)
         {
             buffer[i] = arr[i];
         }
@@ -82,7 +82,7 @@ struct Packet
 
     void clear()
     {
-        lastIndex = 0;
+        bufferSize = 0;
         memset(buffer, 0, sizeof(buffer));
     }
 
@@ -95,11 +95,9 @@ struct Packet
         return 0; // Return 0 if indices are out of bounds
     }
 
-    uint8_t lastIndex = 0;
+    uint8_t bufferSize = 0;
     uint8_t buffer[32] = {0};
 };
-
-#ifdef MOVE_FUNCTIONS
 
 enum class anim : uint8_t
 {
@@ -114,44 +112,92 @@ enum class anim : uint8_t
     easeInOutCubic,
 
     // Gaussian
-    gaussian
+    gaussian,
+
+    none
 };
 
-float easeInSine(float x)
-{
-    return 1 - cos((x * M_PI) / 2);
-}
-
-float easeOutSine(float x)
-{
-    return sin((x * M_PI) / 2);
-}
-
-float easeInOutSine(float x)
-{
-    return -(cos(M_PI * x) - 1) / 2;
-}
-
-float easeInCubic(float x)
-{
-    return x * x * x;
-}
-
-float easeOutCubic(float x)
-{
-    return 1 - pow(1 - x, 3);
-}
-
-float easeInOutCubic(float x)
-{
-    return (x < 0.5) ? (4 * x * x * x) : (1 - pow(-2 * x + 2, 3) / 2);
-}
-
-float gaussian(float x, float b = 0.5, float c = 0.1)
-{
-    return exp(-0.5 * pow((x - b) / c, 2.0));
-}
+#ifndef MAX_IDS_BUFFER
+#define MAX_IDS_BUFFER 32
 #endif
+
+#ifndef MAX_POSITIONS_BUFFER
+#define MAX_POSITIONS_BUFFER 32
+#endif
+
+struct action
+{
+    uint8_t idsSize;
+    uint8_t positionSizesPerLine[MAX_IDS_BUFFER];
+    uint8_t ids[MAX_IDS_BUFFER];
+    int16_t positions[MAX_IDS_BUFFER][MAX_POSITIONS_BUFFER];
+
+    action()
+    {
+        this->idsSize = 0;
+        memset(ids, 0, sizeof(ids));
+        memset(positionSizesPerLine, 0, sizeof(positionSizesPerLine));
+        for (uint8_t i = 0; i < MAX_IDS_BUFFER; i++)
+        {
+            memset(positions[i], 0, sizeof(positions[i]));
+        }
+    }
+
+    bool pushID(uint8_t id)
+    {
+        if (idsSize >= MAX_IDS_BUFFER || getIndexOfID(id) >= 0)
+        {
+            return false;
+        }
+        ids[idsSize++] = id;
+        return true;
+    }
+
+    int8_t getIndexOfID(uint8_t id)
+    {
+        for (int8_t i = 0; i < idsSize; i++)
+        {
+            if (ids[i] == id)
+            {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    bool pushPosition(const uint8_t id, const int16_t position)
+    {
+        int16_t index = getIndexOfID(id);
+        if (index < 0 || positionSizesPerLine[index] >= MAX_POSITIONS_BUFFER)
+        {
+            return false;
+        }
+        positions[index][positionSizesPerLine[index]++] = position;
+        fillFromEnd(index, position);
+        return true;
+    }
+
+    void fillFromEnd(const uint8_t index, const int16_t position)
+    {
+        for (uint8_t i = positionSizesPerLine[index]; i < MAX_POSITIONS_BUFFER; ++i)
+        {
+            positions[index][i] = position;
+        }
+    }
+
+    uint8_t getMatrixSize()
+    {
+        uint8_t max = positionSizesPerLine[0];
+        for (uint8_t i = 1; i < idsSize; i++)
+        {
+            if (max < positionSizesPerLine[i])
+            {
+                max = positionSizesPerLine[i];
+            }
+        }
+        return max;
+    }
+};
 
 struct ServoHiwonder
 {
@@ -254,13 +300,22 @@ public:
     bool getLoadOrUnload(ServoHiwonder &servo);
 
     void moveRelative(const uint8_t id, int16_t relative, uint16_t time);
+    void moveRelative(ServoHiwonder &servo, int16_t relative);
 
-#ifdef MOVE_FUNCTIONS
     // note that this function only ends if it reaches the desired target pos, unlike the moveWithTime which is "async"
     void moveAnim(const uint8_t id, int16_t pos, uint16_t totalTime, anim animType);
     // note that this function only ends if it reaches the desired target pos, unlike the moveWithTime which is "async"
     void moveAnim(ServoHiwonder &servo, anim animType);
-#endif
+
+    void moveMin(const uint8_t id, uint16_t totalTime, anim animType);
+    void moveMin(ServoHiwonder &servo, anim animType);
+
+    void moveMax(const uint8_t id, uint16_t totalTime, anim animType);
+    void moveMax(ServoHiwonder &servo, anim animType);
+
+    void sequence(uint8_t *ids, uint8_t numberOfIds, int16_t **positions, uint8_t numberOfPositions, uint8_t numberOfCycles, uint16_t timePerMovement, uint16_t pause);
+    void sequence(action &act, uint8_t numberOfCycles, uint16_t timePerMovement, uint16_t pause);
+    void domino(uint8_t *ids, uint8_t numberOfIds, int16_t *positions, uint8_t numberOfPositions, uint16_t timePerMovement, uint16_t pause, anim animType);
 
     ~ServoController()
     {
