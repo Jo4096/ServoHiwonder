@@ -41,7 +41,22 @@
 #define ERROR_VALUE -69420
 
 #define BAUD_RATE 115200
+
 #define INIT_SERIAL_COM() Serial.begin(BAUD_RATE)
+
+#ifdef DEBUG_MODE
+#define SERIAL_DEBUG(val) Serial1.println(val)
+#define INIT_DEBUG_SERIAL()                  \
+    do                                       \
+    {                                        \
+        Serial1.begin(9600);                 \
+        Serial1.println(F("DEBUG MODE ON")); \
+    } while (0)
+
+#else
+#define SERIAL_DEBUG(val)
+#define INIT_DEBUG_SERIAL()
+#endif
 
 // packet format
 // Header ID number Data Length Command Parameter Checksum
@@ -248,6 +263,7 @@ public:
 
     void moveWithTime(const uint8_t id, int16_t position, uint16_t time);
     void moveWithTime(ServoHiwonder &servo);
+
     void moveAll(int16_t position, uint16_t time);
 
     bool getPosWithTime(const uint8_t id, int16_t *pos, uint16_t *time);

@@ -9,11 +9,19 @@ void ServoController::send(const uint8_t id, const uint8_t cmd, const uint8_t nu
     serialX.flush();
     sendPack.clear();
 
+    SERIAL_DEBUG(F("PUSHING"));
+    SERIAL_DEBUG(SIGNATURE);
+    SERIAL_DEBUG(SIGNATURE);
+
     sendPack.pushback(SIGNATURE);
     sendPack.pushback(SIGNATURE);
 
     uint8_t len = numberOfParam + 3;
     uint8_t checkSum = id + cmd + len;
+
+    SERIAL_DEBUG(id);
+    SERIAL_DEBUG(len);
+    SERIAL_DEBUG(cmd);
 
     sendPack.pushback(id);
     sendPack.pushback(len);
@@ -23,19 +31,26 @@ void ServoController::send(const uint8_t id, const uint8_t cmd, const uint8_t nu
     {
         va_list vl;
         va_start(vl, pram1);
+        SERIAL_DEBUG(pram1);
         sendPack.pushback(pram1);
+
         checkSum += pram1;
         for (uint8_t i = 1; i < numberOfParam; i++)
         {
             uint8_t val = static_cast<uint8_t>(va_arg(vl, int));
             checkSum += val;
+            SERIAL_DEBUG(val);
             sendPack.pushback(val);
         }
         va_end(vl);
     }
 
     checkSum = ~checkSum;
+
+    SERIAL_DEBUG(checkSum);
     sendPack.pushback(checkSum);
+
+    SERIAL_DEBUG(F("SENDING PACK"));
 
     serialX.write(sendPack.buffer, sendPack.bufferSize);
 }
@@ -101,6 +116,7 @@ bool ServoController::recv(const uint8_t id, const uint8_t cmd)
     {
         if (millis() - startTime > TIMEOUT)
         {
+            SERIAL_DEBUG(F("TIMEOUT"));
             return false; // Timeout if data is not available
         }
     }
@@ -112,24 +128,28 @@ bool ServoController::recv(const uint8_t id, const uint8_t cmd)
     // Validate header
     if (recvBuffer[0] != SIGNATURE || recvBuffer[1] != SIGNATURE)
     {
+        SERIAL_DEBUG(F("SIGNATURE IS WRONG"));
         return false; // Return error if header is incorrect
     }
 
     // Validate ID
     if (recvBuffer[2] != id)
     {
+        SERIAL_DEBUG(F("ID IS WRONG"));
         return false; // Return error if ID does not match
     }
 
     // Validate Length
     if (recvBuffer[3] != len)
-    {                 // Length should equal the total length of the packet
+    { // Length should equal the total length of the packet
+        SERIAL_DEBUG(F("LEN IS WRONG"));
         return false; // Return error if length does not match
     }
 
     // Validate Command
     if (recvBuffer[4] != cmd)
     {
+        SERIAL_DEBUG(F("CMD IS WRONG"));
         return false; // Return error if command does not match
     }
 
@@ -143,9 +163,11 @@ bool ServoController::recv(const uint8_t id, const uint8_t cmd)
 
     if (recvBuffer[totalLen - 1] != checksum)
     {
+        SERIAL_DEBUG(F("CHECKSUM IS WRONG"));
         return false; // Return error if checksum does not match
     }
 
+    SERIAL_DEBUG(F("SUCESS"));
     recvPack.setPacket(recvBuffer, totalLen);
 
     return true; // Success
@@ -165,6 +187,7 @@ bool ServoController::getID(uint8_t *recvID)
 {
     if (!recvID)
     {
+        SERIAL_DEBUG(F("NULL POINTER"));
         return false;
     }
 
@@ -173,10 +196,13 @@ bool ServoController::getID(uint8_t *recvID)
     if (recv(ALL_SERVOS, SERVO_ID_READ))
     {
         *recvID = recvPack.buffer[5];
+        SERIAL_DEBUG(F("RECEIVED: "));
+        SERIAL_DEBUG(*recvID);
         return true;
     }
     else
     {
+        SERIAL_DEBUG(F("getID FAILED"));
         return false;
     }
 }
@@ -217,16 +243,25 @@ bool ServoController::getPosWithTime(const uint8_t id, int16_t *pos, uint16_t *t
             *pos = recvPack.combine(6, 5);
             *pos = constrain(*pos, 0, 1000);
         }
+        else
+        {
+            SERIAL_DEBUG(F("POS IS NULLPTR -> NOT FETCHING POS"));
+        }
 
         if (time != nullptr)
         {
             *time = recvPack.combine(8, 7);
+        }
+        else
+        {
+            SERIAL_DEBUG(F("TIME IS NULLPTR -> NOT FETCHING TIME"));
         }
 
         return true;
     }
     else
     {
+        SERIAL_DEBUG(F("getPosWithTime FAILED"));
         return false;
     }
 }
@@ -271,22 +306,25 @@ bool ServoController::getPosFromWFS(const uint8_t id, int16_t *pos)
 {
     if (!pos)
     {
+        SERIAL_DEBUG(F("POS IS NULLPTR -> CANNOT FETCH POSITION"));
         return false;
     }
 
     send(id, SERVO_MOVE_TIME_WAIT_READ, 0, 0);
+
     if (recv(id, SERVO_MOVE_TIME_WAIT_READ))
     {
         *pos = recvPack.combine(6, 5);
         *pos = constrain(*pos, 0, 1000);
+
+        SERIAL_DEBUG(F("getPosFromWFS SUCCESS"));
         return true;
     }
     else
     {
+        SERIAL_DEBUG(F("getPosFromWFS FAILED"));
         return false;
     }
-
-    return false;
 }
 
 bool ServoController::getPosFromWFS(ServoHiwonder &servo)
@@ -328,6 +366,7 @@ bool ServoController::getOffset(const uint8_t id, int8_t *offset)
 {
     if (!offset)
     {
+        SERIAL_DEBUG(F("OFFSET IS NULLPTR -> CANNOT FETCH OFFSET"));
         return false;
     }
 
@@ -335,10 +374,12 @@ bool ServoController::getOffset(const uint8_t id, int8_t *offset)
     if (recv(id, SERVO_ANGLE_OFFSET_READ))
     {
         *offset = static_cast<int8_t>(recvPack.buffer[5]);
+        SERIAL_DEBUG(F("getOffset SUCCESS"));
         return true;
     }
     else
     {
+        SERIAL_DEBUG(F("getOffset FAILED"));
         return false;
     }
 }
@@ -382,18 +423,23 @@ bool ServoController::getPos(const uint8_t id, int16_t *pos)
 {
     if (!pos)
     {
+        SERIAL_DEBUG(F("POS IS NULLPTR -> CANNOT FETCH POSITION"));
         return false;
     }
 
     send(id, SERVO_POS_READ, 0, 0);
+
     if (recv(id, SERVO_POS_READ))
     {
         *pos = recvPack.combine(6, 5);
         *pos = constrain(*pos, 0, 1000);
+
+        SERIAL_DEBUG(F("getPos SUCCESS"));
         return true;
     }
     else
     {
+        SERIAL_DEBUG(F("getPos FAILED"));
         return false;
     }
 }
@@ -402,17 +448,21 @@ bool ServoController::getTemp(const uint8_t id, uint8_t *temp)
 {
     if (!temp)
     {
+        SERIAL_DEBUG(F("TEMP IS NULLPTR -> CANNOT FETCH TEMPERATURE"));
         return false;
     }
 
     send(id, SERVO_TEMP_READ, 0, 0);
+
     if (recv(id, SERVO_TEMP_READ))
     {
         *temp = recvPack.buffer[5];
+        SERIAL_DEBUG(F("getTemp SUCCESS"));
         return true;
     }
     else
     {
+        SERIAL_DEBUG(F("getTemp FAILED"));
         return false;
     }
 }
@@ -421,6 +471,7 @@ bool ServoController::getVin(const uint8_t id, uint16_t *vin)
 {
     if (!vin)
     {
+        SERIAL_DEBUG(F("VIN IS NULLPTR -> CANNOT FETCH TEMPERATURE"));
         return false;
     }
 
@@ -428,10 +479,12 @@ bool ServoController::getVin(const uint8_t id, uint16_t *vin)
     if (recv(id, SERVO_TEMP_READ))
     {
         *vin = recvPack.combine(6, 5);
+        SERIAL_DEBUG(F("getVin SUCCESS"));
         return true;
     }
     else
     {
+        SERIAL_DEBUG(F("getVin FAILED"));
         return false;
     }
 }
@@ -454,6 +507,7 @@ bool ServoController::getLed(const uint8_t id, bool *isOn)
 {
     if (!isOn)
     {
+        SERIAL_DEBUG(F("ISON IS NULLPTR -> CANNOT FETCH ISON"));
         return false;
     }
 
@@ -468,10 +522,12 @@ bool ServoController::getLed(const uint8_t id, bool *isOn)
         {
             *isOn = true;
         }
+        SERIAL_DEBUG(F("getLed SUCCESS"));
         return true;
     }
     else
     {
+        SERIAL_DEBUG(F("getLed FAILED"));
         return false;
     }
 }
@@ -542,6 +598,7 @@ bool ServoController::getLoadOrUnload(const uint8_t id, bool *isLoadMode)
 
     if (!isLoadMode)
     {
+        SERIAL_DEBUG(F("ISLOADMODE IS NULLPTR -> CANNOT FETCH ISLOADMODE"));
         return false;
     }
 
@@ -560,10 +617,13 @@ bool ServoController::getLoadOrUnload(const uint8_t id, bool *isLoadMode)
             return false;
             break;
         }
+        SERIAL_DEBUG(F("getLoadOrUnload SUCCESS"));
+
         return true;
     }
     else
     {
+        SERIAL_DEBUG(F("getLoadOrUnload FAILED"));
         return false;
     }
 }
