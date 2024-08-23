@@ -49,7 +49,7 @@
 #define INIT_DEBUG_SERIAL()                  \
     do                                       \
     {                                        \
-        Serial1.begin(9600);                 \
+        Serial1.begin(115200);               \
         Serial1.println(F("DEBUG MODE ON")); \
     } while (0)
 
