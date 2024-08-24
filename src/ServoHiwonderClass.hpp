@@ -45,12 +45,12 @@
 #define INIT_SERIAL_COM() Serial.begin(BAUD_RATE)
 
 #ifdef DEBUG_MODE
-#define SERIAL_DEBUG(val) Serial1.println(val)
-#define INIT_DEBUG_SERIAL()                  \
-    do                                       \
-    {                                        \
-        Serial1.begin(115200);               \
-        Serial1.println(F("DEBUG MODE ON")); \
+#define SERIAL_DEBUG(val) Serial.println(val)
+#define INIT_DEBUG_SERIAL()                 \
+    do                                      \
+    {                                       \
+        Serial.begin(115200);               \
+        Serial.println(F("DEBUG MODE ON")); \
     } while (0)
 
 #else
