@@ -830,3 +830,31 @@ void ServoController::domino(uint8_t *ids, uint8_t numberOfIds, int16_t *positio
         waitFor(pause);
     }
 }
+
+bool ServoController::moveArm(uint8_t idBase, uint8_t idArm1, uint8_t idArm2, kine::points pts, uint16_t time, float len1, float len2)
+{
+    float o1 = 0;
+    float o2 = 0;
+    float o3 = 0;
+
+    if (pts.getOrientations(&o1, &o2, &o3, len1, len2))
+    {
+        if (o1 > 120 || o3 < -120)
+        {
+            Serial.println("Impossivel");
+            return false;
+        }
+        float O1 = map(o1, -120, 120, 0, 1000);
+        float O2 = map(o2, 0, 180, 0, 1000);
+        float O3 = map(o3, -90, 90, 0, 1000);
+
+        moveWithTime(idBase, O1, time);
+        waitFor(5);
+        moveWithTime(idArm1, O2, time);
+        waitFor(5);
+        moveWithTime(idArm2, O3, time);
+        waitFor(5);
+        return true;
+    }
+    return false;
+}

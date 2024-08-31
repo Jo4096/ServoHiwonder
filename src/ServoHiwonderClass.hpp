@@ -3,6 +3,7 @@
 
 #include <Arduino.h>
 #include <stdarg.h>
+#include <ServoKinematics.hpp>
 
 #define SIGNATURE 0x55
 #define SERVO_MOVE_TIME_WRITE 1       // LEN 7
@@ -332,6 +333,8 @@ public:
     void sequence(uint8_t *ids, uint8_t numberOfIds, int16_t **positions, uint8_t numberOfPositions, uint8_t numberOfCycles, uint16_t timePerMovement, uint16_t pause);
     void sequence(action &act, uint8_t numberOfCycles, uint16_t timePerMovement, uint16_t pause);
     void domino(uint8_t *ids, uint8_t numberOfIds, int16_t *positions, uint8_t numberOfPositions, uint16_t timePerMovement, uint16_t pause, anim animType);
+
+    bool moveArm(uint8_t idBase, uint8_t idArm1, uint8_t idArm2, kine::points pts, uint16_t time, float len1, float len2);
 
     ~ServoController()
     {
